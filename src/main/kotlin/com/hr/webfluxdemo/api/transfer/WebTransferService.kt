@@ -11,7 +11,7 @@ class WebTransferService(private val transferRepository: WebTransferRepository) 
     suspend fun getPage(page: Int, size: Int, searchCondition: TransferSearchCondition) : PaginationResponse<DepositWithdrawResponse> {
         val offset = (page-1) * size
 
-        val contents = transferRepository.findAllWithPage(
+        val contents = transferRepository.findPageWithUserName(
             offset = offset,
             limit = size,
             condition = searchCondition,

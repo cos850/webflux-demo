@@ -14,7 +14,7 @@ class WebTransferRepository(
     private val converter: MappingR2dbcConverter,
 ) {
 
-    suspend fun findAllWithPage(offset: Int, limit: Int, condition: TransferSearchCondition): List<TransferWithUserName> {
+    suspend fun findPageWithUserName(offset: Int, limit: Int, condition: TransferSearchCondition): List<TransferWithUserName> {
         var sql: String =
             """
                 SELECT t.*, u.nickname 
@@ -29,8 +29,6 @@ class WebTransferRepository(
             """.trimIndent()
 
         sql += "\n LIMIT :limit OFFSET :offset "
-
-        println(sql)
 
         return databaseClient.sql(sql)
             .bind("startDate", condition.searchDate.first.atStartOfDay())
@@ -47,7 +45,7 @@ class WebTransferRepository(
             .awaitSingle()
     }
 
-    fun count(condition: TransferSearchCondition): Int{
+    suspend fun count(condition: TransferSearchCondition): Int{
         val sql = """
             SELECT COUNT(*) 
             FROM transfer t left outer join user u ON (t.user_id = u.id)
@@ -65,7 +63,7 @@ class WebTransferRepository(
             .bind("endDate", condition.searchDate.second.atTime(23, 59, 59, 999))
             .map { row -> row.get(0, Int::class.java)}
             .one()
-            .block() ?: 0
+            .awaitSingle() ?: 0
     }
 
     fun addOptionalConditions(request: TransferSearchCondition?): String {

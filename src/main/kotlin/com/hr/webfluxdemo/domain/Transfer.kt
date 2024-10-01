@@ -18,6 +18,9 @@ data class Transfer(
     // 입출금 금액
     val amount: Long,
 
+    // 은행코드
+    val bankCode: BankCode,
+
     // 계좌번호
     val accountNumber: String,
 
@@ -28,7 +31,6 @@ data class Transfer(
     val receiverMemo: String,
 
     // 최초 거래 시간
-
     val createdAt: ZonedDateTime,
 
     // 마지막 거래 시간
