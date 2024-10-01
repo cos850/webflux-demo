@@ -45,9 +45,9 @@ data class DepositWithdrawResponse (
 
 fun DepositWithdrawRequest.toSearchCondition(): TransferSearchCondition {
     return TransferSearchCondition(
-        searchDate = this.searchDate,
-        userNickname = this.userNickname,
-        accountNumber = this.accountNumber,
-        memo = this.memo
+        searchDate = searchDate,
+        userNickname = userNickname,
+        accountNumber = accountNumber,
+        memo = memo
     )
 }
