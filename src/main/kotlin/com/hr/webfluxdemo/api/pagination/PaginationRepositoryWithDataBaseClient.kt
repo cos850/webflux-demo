@@ -4,6 +4,9 @@ import com.hr.webfluxdemo.domain.Product
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 
+/**
+ * 정말 단순하게 페이징만 처리해보는 예제
+ */
 @Repository
 class PaginationRepositoryWithDataBaseClient(
     private val dbClient: DatabaseClient
