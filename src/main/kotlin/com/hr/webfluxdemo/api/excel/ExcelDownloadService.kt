@@ -8,9 +8,37 @@ import kotlin.reflect.KClass
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.memberProperties
 
-abstract class ExcelDownloadService<Q, D: Any> {
+abstract class ExcelDownloadService<Q, D : Any> {
 
-    abstract suspend fun generateExcel(requestDto: Q): SXSSFWorkbook
+    suspend fun generateExcel(
+            headerInfo: KClass<D>,
+            searchCondition: Q
+    ): SXSSFWorkbook {
+        val memoryRowSize = 1000
+        val workbook = createWorkbook(memoryRowSize)
+        val sheet = workbook.createSheet(getSheetName())
+
+        // header 작성
+        sheet.writeHeader(headerInfo)
+
+        val totalCount = getTotalData(searchCondition)
+
+        if(totalCount == 0) return workbook
+
+        var offset = 0
+        while (offset < totalCount) {
+            val dataList = getDataList(offset, memoryRowSize, searchCondition)
+
+            sheet.writeData(offset+1, dataList)
+            offset += memoryRowSize
+        }
+
+        return workbook
+    }
+
+    protected abstract fun getSheetName(): String
+    protected abstract suspend fun getTotalData(searchCondition: Q): Int
+    protected abstract suspend fun getDataList(offset: Int, size: Int, searchCondition: Q): List<D>
 
     /**
      * SXSSFWorkbook 반환
