@@ -5,7 +5,7 @@ import com.hr.webfluxdemo.domain.BankCode
 import java.time.LocalDateTime
 
 data class TransferExcelDto(
-    @ExcelHeader("거래 시각")
+    @ExcelHeader("거래 시각", maxDataLength = 23)
     val lastDateTime: LocalDateTime,
 
     @ExcelHeader("업체명")
@@ -17,10 +17,10 @@ data class TransferExcelDto(
     @ExcelHeader("수취인명")
     val receiverName: String,
 
-    @ExcelHeader("은행코드")
-    val bankCode: BankCode,
+    @ExcelHeader("은행명")
+    val bankCode: String,
 
-    @ExcelHeader("계좌번호")
+    @field:ExcelHeader("계좌번호")
     val accountNumber: String
 ) {
     companion object {
@@ -30,7 +30,7 @@ data class TransferExcelDto(
                 partnerName = source.userNickname,
                 amount = amount,
                 receiverName = memo,
-                bankCode = bankCode,
+                bankCode = bankCode.bankName,
                 accountNumber = accountNumber
             )
         }

@@ -2,16 +2,17 @@ package com.hr.webfluxdemo.api.excel
 
 import org.apache.poi.ss.usermodel.*
 import org.apache.poi.xssf.streaming.SXSSFWorkbook
+import java.lang.reflect.Field
 import java.time.LocalDate
 import java.time.LocalDateTime
-import kotlin.reflect.KClass
-import kotlin.reflect.full.findAnnotation
-import kotlin.reflect.full.memberProperties
+import java.time.format.DateTimeFormatter
 
 abstract class ExcelDownloadService<Q, D : Any> {
 
+    val DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS")
+
     suspend fun generateExcel(
-            headerInfo: KClass<D>,
+            headerInfo: Class<D>,
             searchCondition: Q
     ): SXSSFWorkbook {
         val memoryRowSize = 1000
@@ -46,24 +47,47 @@ abstract class ExcelDownloadService<Q, D : Any> {
      *
      * - rowAccessWindowSize: 기본 값 1000
      */
-    protected fun createWorkbook(memoryRowSize: Int = 1000) = SXSSFWorkbook(memoryRowSize)
+    protected fun createWorkbook(memoryRowSize: Int = 10) = SXSSFWorkbook(memoryRowSize)
 
-    protected fun Sheet.writeHeader(clazz: KClass<D>) {
+    /**
+     * @ExcelHeader를 기준으로 엑셀의 헤더 작성
+     *
+     * @param clazz: 작성할 DTO의 Java Class
+     */
+    protected fun Sheet.writeHeader(clazz: Class<D>) {
         val row = createRow(0)
         val headerStyle = workbook.createHeaderStyle()
-        val propertyList = clazz.memberProperties
+
+        val fieldList = clazz.declaredFields
+        var cellOffset = 0
 
         // ExcelHeader의 headerName을 기준으로 헤더를 작성함
-        propertyList.forEachIndexed { i, property ->
-            val excelHeader = property.findAnnotation<ExcelHeader>()
-            if(null != excelHeader) {
-                val cell = row.createCell(i)
-                cell.setCellValue(excelHeader.headerName)
-                cell.cellStyle = headerStyle
+        for(field in fieldList) {
+            if(isSkipField(field)) {
+                continue
             }
+
+            val excelHeader = field.getAnnotation(ExcelHeader::class.java)
+            val cell = row.createCell(cellOffset)
+            cell.setCellValue(excelHeader.headerName)
+            cell.cellStyle = headerStyle
+
+            // SXSSFWorkbook은 메모리 효율성을 위해 autoColumnSize 를 사용할 수 없음
+            // cell 넓이: 글자수 * 256 (10pt 1글자 크기: 256)
+            val cellWidth = (excelHeader.maxDataLength + 2) * 256
+            setColumnWidth(cellOffset, cellWidth)
+
+            cellOffset++
         }
     }
 
+
+    /**
+     * 엑셀의 실제 데이터 작성
+     *
+     * @param startRowOffset: 시작 행 offset
+     * @param dataList: 작성할 데이터
+     */
     protected fun Sheet.writeData(startRowOffset:Int, dataList: List<D>){
         val cellStyle = workbook.createDataStyle()
 
@@ -74,9 +98,17 @@ abstract class ExcelDownloadService<Q, D : Any> {
     }
 
     protected fun Row.writeData(data: D) {
-        for((cellIdx, property) in data::class.memberProperties.withIndex()) {
-            val cell = createCell(cellIdx)
-            val value = property.call(data)
+        var cellOffset = 0
+        for(field in data::class.java.declaredFields) {
+            if(isSkipField(field)) {
+                continue
+            }
+
+            // java에서 private 가 되기 때문에 접근 가능하도록 변경해줘야 함
+            field.isAccessible = true
+
+            val cell = createCell(cellOffset++)
+            val value = field.get(data)
 
             value?.let {
                 when(value) {
@@ -90,8 +122,15 @@ abstract class ExcelDownloadService<Q, D : Any> {
         }
     }
 
+    /**
+     * static method를 만드는 경우 Companion 필드가 생성되므로 제외
+     *
+     * @param field
+     */
+    private fun isSkipField(field: Field) = field.name == "Companion"
+
     protected fun LocalDateTime.toCellFormat(): String {
-        return "${toLocalDate()} ${toLocalTime()}"
+        return format(DATE_TIME_FORMATTER)
     }
 
 
