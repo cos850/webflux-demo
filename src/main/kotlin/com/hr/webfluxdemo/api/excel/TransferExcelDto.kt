@@ -1,7 +1,6 @@
 package com.hr.webfluxdemo.api.excel
 
 import com.hr.webfluxdemo.api.transfer.dto.TransferWithUserName
-import com.hr.webfluxdemo.domain.BankCode
 import java.time.LocalDateTime
 
 data class TransferExcelDto(
